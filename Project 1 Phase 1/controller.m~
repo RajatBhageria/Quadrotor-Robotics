@@ -55,35 +55,34 @@ kpPsi = 1;
 kdPsi = 2; 
 
 %Compute the commanded accelerations  (equation 21) 
-acc = qd{qn}.acc_des - kdi.*(qd{qn}.vel - qd{qn}.vel_des) - kpi.*(qd{qn}.pos - qd{qn}.pos_des);
-
-%find the current orientation 
-phi = qd{qn}.euler(1); 
-theta = qd{qn}.euler(2); 
-psi = qd{qn}.euler(3); 
+acc = qd{qn}.acc_des - kd*(qd{qn}.vel - qd{qn}.vel_des) - kp*(qd{qn}.pos - qd{qn}.pos_des);
 
 %find the theta_des and phi_des
-syms thetaD phiD
-eqn1 = acc(1,:) == params.grav*(thetaD*cos(psi)+phiD*sin(psi)); 
-eqn2 = acc(2,:) == params.grav*(thetaD*sin(psi)-phiD*cos(psi)); 
-sol = solve([eqn1, eqn2], [thetaD, phiD]);
-theta_des = sol.thetaD; 
-phi_des = sol.phiD; 
+syms x y z
+eqn1 = 2*x + y + z == 2;
+eqn1 = 2*x + y + z == 2;
+
+theta_des = acc(1,:)/params.grav;
+phi_des = 2;
 
 %find u1 
 u1 = params.mass*(params.grav + acc(3,:));
+
+%find u2
+phi = qd{qn}.euler(1); 
+theta = qd{qn}.euler(2); 
+psi = qd{qn}.euler(3); 
 
 %find p,q,r parts of angular velocity 
 p = qd{qn}.omega(1); 
 q = qd{qn}.omega(2); 
 r = qd{qn}.omega(3); 
 
-%find u2
-u2 = params.I*[-kpPhi*(phi-phi_des) - kdPhi*(p-qd{qn}.vel_des(1));
-               -kpTheta*(theta-theta_des) - kdTheta*(q-qd{qn}.vel_des(2));
-               -kpPsi*(psi-psi_des) - kdPsi*(r-qd{qn}.yawdot_des);];
+u2 = params.I*[-kpPhi*(phi-phi_des) - kdPhi*(p-);
+               -kpTheta*(theta-theta_des) - kdTheta*(q-);
+               -kpPsi*(psi-psi_des) - kdTheta*(r-qd{qn}.yawdot_des)
+    ]
 
-%define the u vector
 u    = [u1,u2]; % control input u, you should fill this in
                   
 % Thrust
