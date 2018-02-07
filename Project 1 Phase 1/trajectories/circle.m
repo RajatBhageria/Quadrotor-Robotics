@@ -6,14 +6,15 @@ function [desired_state] = circle(t, qn)
 % NOTE: the simulator will spawn the robot to be at the
 %       position you return for t == 0
 
-times = 0:pi/50:2*pi
+r = 2;            % radius
+h = 5;            % height
+x = r * sin(t);
+y = r * cos(t);
+z = h/(2*pi) * t;   
 
-
-
-pos = [0; 0; 5];
-vel = [0; 0; 0];
+pos = [x; y; z];
+vel = [1; 1; 1];
 acc = [0; 0; 0];
-
 
 yaw = 0;
 yawdot = 0;

@@ -44,15 +44,15 @@ function [F, M, trpy, drpy] = controller(qd, t, qn, params)
 
 psi_des   = 0;
 
-%define all the 
-kdi = [1;2;3];
-kpi = [1;2;3];
-kpPhi = 1; 
-kdPhi = 2;
-kpTheta = 1;
-kdTheta = 2; 
-kpPsi = 1; 
-kdPsi = 2; 
+%define all the gains
+kdi = [10;10;30];
+kpi = [10;10;30];
+kpPhi = 100; 
+kdPhi = 200;
+kpTheta = 100;
+kdTheta = 200; 
+kpPsi = 100; 
+kdPsi = 200; 
 
 %Compute the commanded accelerations  (equation 21) 
 acc = qd{qn}.acc_des - kdi.*(qd{qn}.vel - qd{qn}.vel_des) - kpi.*(qd{qn}.pos - qd{qn}.pos_des);
@@ -79,12 +79,12 @@ q = qd{qn}.omega(2);
 r = qd{qn}.omega(3); 
 
 %find u2
-u2 = params.I*[-kpPhi*(phi-phi_des) - kdPhi*(p-qd{qn}.vel_des(1));
-               -kpTheta*(theta-theta_des) - kdTheta*(q-qd{qn}.vel_des(2));
+u2 = params.I*[-kpPhi*(phi-phi_des) - kdPhi*(p-0);
+               -kpTheta*(theta-theta_des) - kdTheta*(q-0);
                -kpPsi*(psi-psi_des) - kdPsi*(r-qd{qn}.yawdot_des);];
 
 %define the u vector
-u    = [u1,u2]; % control input u, you should fill this in
+u    = [u1;u2]; % control input u, you should fill this in
                   
 % Thrust
 F    = u(1);       % This should be F = u(1) from the project handout
