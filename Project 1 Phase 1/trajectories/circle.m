@@ -13,8 +13,8 @@ y = r * cos(t);
 z = h/(2*pi) * t;   
 
 pos = [x; y; z];
-vel = [1; 1; 1];
-acc = [0; 0; 0];
+vel = [r*cos(t); -r*sin(t); h/(2*pi)];
+acc = [-r*sin(t); -r*cos(t); 0];
 
 yaw = 0;
 yawdot = 0;

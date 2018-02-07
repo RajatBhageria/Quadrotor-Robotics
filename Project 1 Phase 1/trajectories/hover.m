@@ -7,15 +7,13 @@ function [desired_state] = hover(t, qn)
 % NOTE: the simulator will spawn the robot to be at the
 %       position you return for t == 0
 
-
-% if t<=5
-%     pos = [0,0,t];
-%     vel = [0,0,1];
-%     acc = [0,0,0];
-% else 
+if t==0
+    pos = [0;0;5];
+else
     pos = [0;0;t];
-    vel = [0;0;1];
-    acc = [0;0;0];
+
+vel = [0;0;1];
+acc = [0;0;0];
  
 yaw = 0;
 yawdot = 0;

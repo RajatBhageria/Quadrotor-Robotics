@@ -63,15 +63,11 @@ theta = qd{qn}.euler(2);
 psi = qd{qn}.euler(3); 
 
 %find the theta_des and phi_des
-syms thetaD phiD
-eqn1 = acc(1,:) == params.grav*(thetaD*cos(psi)+phiD*sin(psi)); 
-eqn2 = acc(2,:) == params.grav*(thetaD*sin(psi)-phiD*cos(psi)); 
-sol = solve([eqn1, eqn2], [thetaD, phiD]);
-theta_des = sol.thetaD; 
-phi_des = sol.phiD; 
+theta_des = (acc(1)*cos(psi) + acc(2)*sin(psi))/(params.grav*(cos(psi)^2 + sin(psi)^2));
+phi_des = -(acc(2)*cos(psi) - acc(1)*sin(psi))/(params.grav*(cos(psi)^2 + sin(psi)^2));
 
 %find u1 
-u1 = params.mass*(params.grav + acc(3,:));
+u1 = params.mass*(params.grav + acc(3));
 
 %find p,q,r parts of angular velocity 
 p = qd{qn}.omega(1); 
