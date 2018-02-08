@@ -9,7 +9,8 @@ function [desired_state] = diamond(t, qn)
 maxT = 20; 
 
 %X(t) from 0 to 1 
-[posx, velx, accelx] = trajectory(0,1,maxT,t);
+[posx, velx, accelx] = trajectory([0; 0.0000; 0.0106;-0.0004]); 
+
 pos = []; 
 vel = []; 
 acc = [];
@@ -20,13 +21,14 @@ if t==0
     acc = [0; 0; 0];
     
 elseif (t > maxT/4) && (t <= maxT/2)
-    [posyz, velyz, accelyz] = trajectory(0,sqrt(2),maxT/4,t);  
+    cs = [0; 0.0000; 0.1697; -0.0226];
+    [posyz, velyz, accelyz] = trajectory(cs);  
     pos = [posx; posyz; posyz];
     vel = [velx; velyz; velyz];
     acc = [accelx; accelyz; accelyz];
     
 elseif (t > maxT/2) && (t <= 3*maxT/4)
-    [posy, vely, accely] = trajectory(sqrt(2),0,maxT/4,t); %for y
+    [posy, vely, accely] = trajectory([1.4142; -0.0000; -0.1697; 0.0226]); %for y
     [posz, velz, accelz] = trajectory(sqrt(2),2*sqrt(2),maxT/4,t); %for z
     pos = [posx; posy; posz];
     vel = [velx; vely; velz];
@@ -59,7 +61,7 @@ desired_state.yawdot = yawdot;
 
 end
 
-function [pos, vel, accel] = trajectory(a,b,T,t)
+function [pos, vel, accel] = trajectory(cs)
     cs = [1, 0, 0, 0; 1, T, T^2, T^3;0, 1, 0, 0; 0, 1, 2*T, 3*T^2]\[a, b, 0, 0]';
     pos = dot(cs, [1, t, t^2, t^3]'); 
     vel = dot(cs, [0, 1, 2*t^2, 3*t^2]'); 
