@@ -11,11 +11,16 @@ h = 2;            % height
 x = r * cos(t);
 y = r * sin(t);
 z = h/(2*pi) * t;   
+c = .5; 
 
 if t == 0
     pos = [5;0;0];
     vel = [0;0;0];
     acc = [0;0;0];
+elseif t < 1
+    pos = [x;y;z];
+    vel = [c*r*sin(t); c*r*cos(t); c*h/(2*pi)];
+    acc = [-c*r*cos(t); -c*r*cos(t); 0];
 elseif t < 2*pi
     pos = [x;y;z];
     vel = [-r*sin(t); r*cos(t); h/(2*pi)];

@@ -45,14 +45,23 @@ function [F, M, trpy, drpy] = controller(qd, t, qn, params)
 psi_des   = 0;
 
 %define all the gains
-kdi = [10;10;30];
-kpi = [10;10;30];
-kpPhi = 100; 
-kdPhi = 200;
-kpTheta = 100;
-kdTheta = 200; 
-kpPsi = 100; 
-kdPsi = 200; 
+kdi = [5;5;5]; 
+kpi = [3;3;3];
+kpPhi = 350; 
+kdPhi = 15; 
+kpTheta = 350; 
+kdTheta = 15; 
+kpPsi = 40; 
+kdPsi = 60; 
+
+% kdi = [50;70;50];
+% kpi = [30;30;30];
+% kpPhi = 1000; 
+% kdPhi = 2000;
+% kpTheta = 1000;
+% kdTheta = 2000; 
+% kpPsi = 1000; 
+% kdPsi = 2000; 
 
 %Compute the commanded accelerations  (equation 21) 
 acc = qd{qn}.acc_des - kdi.*(qd{qn}.vel - qd{qn}.vel_des) - kpi.*(qd{qn}.pos - qd{qn}.pos_des);

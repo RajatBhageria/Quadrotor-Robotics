@@ -25,7 +25,7 @@ real_time = true;
 nquad = 1;
 
 % max time
-time_tol = 30;
+time_tol = 10;
 
 % parameters for simulation
 params = crazyflie();
@@ -35,7 +35,7 @@ fprintf('Initializing figures...\n')
 h_fig = figure;
 h_3d = gca;
 axis equal
-grid on
+grid on 
 view(3);
 xlabel('x [m]'); ylabel('y [m]'); zlabel('z [m]')
 quadcolors = lines(nquad);
