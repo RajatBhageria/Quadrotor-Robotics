@@ -7,10 +7,10 @@ function [desired_state] = circle(t, qn)
 %       position you return for t == 0
 
 r = 5;            % radius
-h = 2;            % height
+h = 2.5;            % height
 x = r * cos(t);
 y = r * sin(t);
-z = h/(2*pi) * t;   
+z = h/(2*pi)*t;   
 
 if t == 0
     pos = [5;0;0];
