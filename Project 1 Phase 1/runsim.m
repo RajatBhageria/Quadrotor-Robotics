@@ -12,7 +12,7 @@ addpath('trajectories')
 % You need to implement trajhandle and controlhandle
 
 % trajectory generator
-trajhandle = @circle;
+trajhandle = @diamond;
 
 % controller
 controlhandle = @controller;
@@ -25,7 +25,7 @@ real_time = true;
 nquad = 1;
 
 % max time
-time_tol = 10;
+time_tol = 30;
 
 % parameters for simulation
 params = crazyflie();
