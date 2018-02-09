@@ -1,0 +1,18 @@
+Submission from Rajat Bhageria 
+Pennkey: rajat 
+
+How I wrote the controller: this was mostly understanding the cookbook PDF very well and understanding the underlying physics behind everything and then simply coding in the equations. 
+How I did tuning: I mainly used the hover.m file. Essentially I first tuned the z direction and just had the quad rise up to 5 and then hover there. I tuned the z kp and kd and then made sure all the phi/theta/psi kps/kds were tuned. 
+Then I had the quad go 5 units along the positive x direction and tuned the kp/kd for the x direction and also the angles for the x direction. 
+I did the same for the y direction and found that the kp/kd that worked for the x direction also worked very well for the y direction.
+
+This is essentially how to I tuned the gains. 
+
+How circle works: 
+* Attempt 1: I simply created a helix and told the quad to follow it. The quad went to fast at the beginning and steeered significantly out of control and veered off from the beginning. 
+* Attempt 2: I created a peacewise function and at the beginning (for the first T/5 seconds, multiplied the velocity by a constant < 1 to slow it down. This worked very well and the quad was able to at least follow the trajectory but it was not perfect and in the z axis there was significant error. Also, the quad was too fast and overshooting at the end near t=2*pi
+* Attempt 3: I created a theta function that followed a polynomial trajectory smoothing function that was presented in class; this function took in a time and c0,c1,c2,c3 to fit to a 3rd order polynomial to describe theta. Then I simply took this theta and used it in my original function for the helix and had a phenomenal result. 
+
+How diamond works: 
+* Attempt 1: Simply create an if-else statement sequence that maps the four legs. So leg one is between time 0 and T/4, leg two is between time T/4 and T/2, leg three is between T/2 and 3T/4, and leg four is between 3T/4 and T. Simply find a vector as the difference between the two points and add the first point as the starting point. This worked but it was not very stable and the quad was oversbooting. 
+* Attempt 2: Again as in Attempt 3 of the Circle, I implemented trajectory smoothing. In this case, rather than just multuplying the time by the vector and adding it to the initial position, I multiplied the vector by theta where theta was a smooth function between 0 and 1. Then I had to adjust for time for each of the thetas since each segment I wanted to be only T/4 seconds. This worked very well and the curve was almost perfect. 
