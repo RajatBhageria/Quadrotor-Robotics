@@ -54,14 +54,6 @@ kdTheta = 15;
 kpPsi = 40; 
 kdPsi = 60; 
 
-% kdi = [50;70;50];
-% kpi = [30;30;30];
-% kpPhi = 1000; 
-% kdPhi = 2000;
-% kpTheta = 1000;
-% kdTheta = 2000; 
-% kpPsi = 1000; 
-% kdPsi = 2000; 
 
 %Compute the commanded accelerations  (equation 21) 
 acc = qd{qn}.acc_des - kdi.*(qd{qn}.vel - qd{qn}.vel_des) - kpi.*(qd{qn}.pos - qd{qn}.pos_des);
