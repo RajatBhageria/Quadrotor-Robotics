@@ -48,7 +48,6 @@ maxT = totalDist * (1/maxSpeed);
 %% Find the vector for this timestamp t 
 [vector,index,timeSoFar,cs] = findVector(vectors, maxT, totalDist,t); 
 
-
 %% Starting point
 if (t==0)
     pos=[0;0;0];
@@ -111,7 +110,7 @@ n = size(vectors,1);
 for i = 1:n
     vector = vectors(i,:); 
     index = i;
-    timeToSpendOnSegment = maxT*((norm(vector)+0.0)/totalDist);
+    timeToSpendOnSegment = maxT*((norm(vector))/totalDist);
     totalTimeSoFar = totalTimeSoFar + timeToSpendOnSegment; 
     if t <= totalTimeSoFar
         break; 
