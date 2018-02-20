@@ -35,7 +35,7 @@ startIJK = map.xyzToSub(start);
 iStart = startIJK(1); 
 jStart = startIJK(2); 
 kStart = startIJK(3);   
-distances(iStart,jStart,kStart) = 0; 
+distances(iStart,jStart,kStart) = .01; 
 
 %main loop 
 while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances) <= 1000000)
@@ -86,7 +86,8 @@ goalSubs = map.xyzToSub(goal);
 path(1,:) = goalSubs;
 counter = 2; 
 startSubs = map.xyzToSub(start); 
-while isempty(find(path==startSubs))
+parent = 100; 
+while parent ~= 0 %isempty(find(path==startSubs))
     lastItem = path(counter-1,:);
     parent = parents(lastItem(1),lastItem(2),lastItem(3));
     subsOfParent = map.xyzToSub(map.indToXYZ(parent)); 
@@ -95,6 +96,8 @@ while isempty(find(path==startSubs))
 end
 path = flip(path); 
 path = map.subToXYZ(path); 
+
+path = [start; path; goal];
 
 end
 
