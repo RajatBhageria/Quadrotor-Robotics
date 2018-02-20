@@ -17,17 +17,17 @@ if nargin < 4
 end
 
 grid = map.occgrid;
-[maxI,maxJ,maxK] = size(grid); 
+[i,j,k] = size(grid); 
 %safeDistance = map.margin; 
 
 %initialize the matrices 
-path = zeros(1,3);
+path = [];
 num_expanded = 0;
-distances = ones(maxI,maxJ,maxK)*1000000;
-parents = zeros(maxI,maxJ,maxK); 
+distances = ones(i,j,k)*1000000;
+parents = zeros(i,j,k); 
 
 %create a list of the unvisited nodes
-unvisited = ones(maxI,maxJ,maxK); 
+unvisited = ones(i,j,k); 
 unvisited = unvisited .* ~grid; %shows one where it's possible to go
 
 %initialization of algorithm
@@ -38,7 +38,7 @@ kStart = startIJK(3);
 distances(iStart,jStart,kStart) = 0; 
 
 %main loop 
-while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances) <= 1000000)
+while (pathFound(goal,unvisited,map) && findMinPath(unvisited,distances) <= 1000000)
     [minNodeVal,indexMinNode] = findMinPath(unvisited, distances);
     unvisited(indexMinNode) = 0; %set as visited 
     
@@ -47,33 +47,19 @@ while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances) <= 
     yNode = coordsOfNode(2); 
     zNode = coordsOfNode(3); 
     
-    subsOfNode = map.xyzToSub(map.indToXYZ(indexMinNode));
-    iNode = subsOfNode(1); 
-    jNode = subsOfNode(2); 
-    kNode = subsOfNode(3); 
-    
     %find all the neighbors of the min node 
-    neighborsOfMin = findNeighbors(map,indexMinNode); 
+    neighborsOfMin = findNeighbors(indexMinNode); 
     
     %loop through all the neighbors of the minNode
-    for node = 1:size(neighborsOfMin,1)
+    for node = 0:size(neighborsOfMin,1)
         %check if the nodes are possible or not
-        subsNeighbor = neighborsOfMin(node,:);
-        xyzNeighbor = map.subToXYZ(subsNeighbor); 
-        xNeighbor = xyzNeighbor(1); 
-        yNeighbor = xyzNeighbor(2); 
-        zNeighbor = xyzNeighbor(3); 
-        
-        iNeighbor = subsNeighbor(1);
-        jNeighbor = subsNeighbor(2); 
-        kNeighbor = subsNeighbor(3);
-        
-        if (nodeIsPossible(subsNeighbor(1),subsNeighbor(2),subsNeighbor(3),maxI,maxJ,maxK))
+        [xNeighbor,yNeighbor,zNeighbor] = neighborsOfMin(node);
+        if (nodeIsPossible(xNeighbor,yNeighbor,zNeighbor,i,j,k))
             costOfPath = ((xNode-xNeighbor)^2+(yNode-yNeighbor)^2 +(zNode-zNeighbor)^2)^.5;
-            newDist = distances(iNode,jNode,kNode) + costOfPath; 
-            if (newDist < distances(iNeighbor,jNeighbor,kNeighbor))
-                distances(iNeighbor,jNeighbor,kNeighbor) = newDist; 
-                parents(iNeighbor,jNeighbor,kNeighbor) = indexMinNode; 
+            newDist = distances(xNode,yNode,zNode) + costOfPath; 
+            if (newDist < distances(xNeighbor,yNeighbor,zNeighbor))
+                distances(xNeighbor,yNeighbor,zNeighbor) = newDist; 
+                parents(xNeighbor,yNeighbor,zNeighbor) = indexMinNode; 
             end 
         end 
         
@@ -82,38 +68,37 @@ while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances) <= 
 end
 
 %find the actual path 
-goalSubs = map.xyzToSub(goal);
-path(1,:) = goalSubs;
-counter = 2; 
-startSubs = map.xyzToSub(start); 
-while isempty(find(path==startSubs))
-    lastItem = path(counter-1,:);
-    parent = parents(lastItem(1),lastItem(2),lastItem(3));
-    subsOfParent = map.xyzToSub(map.indToXYZ(parent)); 
-    path(counter,:) = subsOfParent;
-    counter = counter + 1; 
-end
+path(1,:) = map.xyzToSub(goal);
+% counter = 2; 
+% while isempty(find(path==start))
+%     parent = parents(goal(1),goal(2),goal(3));
+%     disp(parent); 
+%     coordOfParent = map.subToXYZ(parent); 
+%     path(counter,:) = coordOfParent;
+%     counter = counter + 1; 
+% end
 path = flip(path); 
-path = map.subToXYZ(path); 
 
 end
 
-function [neighbors] = findNeighbors(map, indexMinNode)
-    subs = map.xyzToSub(map.indToXYZ(indexMinNode)); 
-    i = subs(1); 
-    j = subs(2); 
-    k = subs(3); 
+function [neighbors] = findNeighbors(indexMinNode)
+    coords = map.subToXYZ(indexMinNode); 
+    x = coords(1); 
+    y = coords(2); 
+    z = coords(3); 
     
-    neighbors = [i-1,j,k;
-                i+1,j,k;
-                i,j-1,k;
-                i,j+1,k;
-                i,j,k-1;
-                i,j,k+1;];
+    neighbors = [x-1,y,z;
+                x+1,y,z;
+                x,y-1,z;
+                x,y+1,z;
+                x,y,z-1;
+                x,y,z+1;];
+   
 end 
 
-function [isPossible] = nodeIsPossible(x,y,z,maxI,maxJ,maxK)
-    isPossible = x > 0 && x <= maxI && y > 0 && y <= maxJ && z > 0 && z <= maxK;
+
+function [isPossible] = nodeIsPossible(x,y,z,i,j,k)
+    isPossible = x > 0 && x < i && y > 0 && y < j && z > 0 && z < k;
 end 
 
 function [minNodeValue,index] = findMinPath(unvisited,distances)
@@ -122,7 +107,8 @@ function [minNodeValue,index] = findMinPath(unvisited,distances)
     [minNodeValue,index] = min(allPossibleVals(:)); 
 end 
 
-function [pathIsFound] = goalUnvisited(goal,unvisited,map)
+function [pathIsFound] = pathFound(goal,unvisited,map)
     indexOfGoal = map.xyzToInd(goal);
-    pathIsFound = (unvisited(indexOfGoal)==1);
+    %pathIsFound = isempty(find(unvisited == indexOfGoal)); 
+    pathIsFound = (unvisited(indexOfGoal)==0);
 end 
