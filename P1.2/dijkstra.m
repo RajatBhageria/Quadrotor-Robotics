@@ -96,27 +96,32 @@ while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances,asta
     
 end
 
-%find the actual path 
-goalSubs = map.xyzToSub(goal);
-path(1,:) = goalSubs;
-counter = 2; 
-startSubs = map.xyzToSub(start); 
-parent = 100; 
-while parent ~= 0 
-    lastItem = path(counter-1,:);
-    parent = parents(lastItem(1),lastItem(2),lastItem(3));
-    subsOfParent = map.xyzToSub(map.indToXYZ(parent)); 
-    path(counter,:) = subsOfParent;
-    counter = counter + 1; 
-end
+if ~goalUnvisited(goal,unvisited,map)
+    %find the actual path 
+    goalSubs = map.xyzToSub(goal);
+    path(1,:) = goalSubs;
+    counter = 2; 
+    startSubs = map.xyzToSub(start); 
+    parent = 100; 
+    while parent ~= 0 
+        lastItem = path(counter-1,:);
+        parent = parents(lastItem(1),lastItem(2),lastItem(3));
+        subsOfParent = map.xyzToSub(map.indToXYZ(parent)); 
+        path(counter,:) = subsOfParent;
+        counter = counter + 1; 
+    end
 
-%flip the path so that the start node is at the beginning
-path = flip(path); 
-path = map.subToXYZ(path); 
+    %flip the path so that the start node is at the beginning
+    path = flip(path); 
+    path = map.subToXYZ(path); 
 
-%set the first value as the start and the last node as the goal
-path(1,:) = start; 
-path(size(path,1),:) = goal;
+    %set the first value as the start and the last node as the goal
+    path(1,:) = start; 
+    path(size(path,1),:) = goal;
+    
+else %algo didn't see the goal
+    path= zeros(0,3); 
+end 
 
 end
 
