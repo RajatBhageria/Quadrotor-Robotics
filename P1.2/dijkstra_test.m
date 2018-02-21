@@ -16,7 +16,7 @@ verifyEqual(testcase, path(end, :), stop);
 end
 
 function testMap1(testcase)
-map = load_map('map1.txt', 0.1, 2.0, 0.3);
+map = load_map('sample_maps/map1.txt', 0.1, 2.0, 0.3);
 start = [0.0  -4.9 0.2];
 stop  = [8.0  18.0 3.0];
 path = dijkstra(map, start, stop);

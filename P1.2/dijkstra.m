@@ -19,6 +19,7 @@ end
 grid = map.occgrid;
 [maxI,maxJ,maxK] = size(grid); 
 %safeDistance = map.margin; 
+res = map.res_xyz;
 
 %initialize the matrices 
 path = zeros(1,3);
@@ -30,6 +31,17 @@ parents = zeros(maxI,maxJ,maxK);
 unvisited = ones(maxI,maxJ,maxK); 
 unvisited = unvisited .* ~grid; %shows one where it's possible to go
 
+%create the H matrix for the A* algorithm 
+H = zeros(maxI,maxJ,maxK); 
+[J,I,K] = meshgrid(1:maxJ,1:maxI,1:maxK);
+for index = 1:(size(H(:),1))
+    iH = I(index);
+    jH = J(index); 
+    kH = K(index); 
+    xyzH = map.subToXYZ([iH,jH,kH]);
+    H(index) = norm(xyzH - goal);
+end 
+
 %initialization of algorithm
 startIJK = map.xyzToSub(start);
 iStart = startIJK(1); 
@@ -38,8 +50,8 @@ kStart = startIJK(3);
 distances(iStart,jStart,kStart) = .01; 
 
 %main loop 
-while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances) <= 1000000)
-    [minNodeVal,indexMinNode] = findMinPath(unvisited, distances);
+while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances,astar,H) <= 1000000)
+    [minNodeVal,indexMinNode] = findMinPath(unvisited, distances, astar,H);
     unvisited(indexMinNode) = 0; %set as visited 
     
     coordsOfNode = map.indToXYZ(indexMinNode);
@@ -51,6 +63,8 @@ while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances) <= 
     iNode = subsOfNode(1); 
     jNode = subsOfNode(2); 
     kNode = subsOfNode(3); 
+    
+    num_expanded = num_expanded + 1;
     
     %find all the neighbors of the min node 
     neighborsOfMin = findNeighbors(map,indexMinNode); 
@@ -87,7 +101,7 @@ path(1,:) = goalSubs;
 counter = 2; 
 startSubs = map.xyzToSub(start); 
 parent = 100; 
-while parent ~= 0 %isempty(find(path==startSubs))
+while parent ~= 0 
     lastItem = path(counter-1,:);
     parent = parents(lastItem(1),lastItem(2),lastItem(3));
     subsOfParent = map.xyzToSub(map.indToXYZ(parent)); 
@@ -119,9 +133,12 @@ function [isPossible] = nodeIsPossible(x,y,z,maxI,maxJ,maxK)
     isPossible = x > 0 && x <= maxI && y > 0 && y <= maxJ && z > 0 && z <= maxK;
 end 
 
-function [minNodeValue,index] = findMinPath(unvisited,distances)
+function [minNodeValue,index] = findMinPath(unvisited,distances,astar,H)
     allPossibleVals = unvisited.*distances; 
     allPossibleVals(allPossibleVals==0) = 1000000;
+    if (astar)
+        allPossibleVals = allPossibleVals + H;
+    end 
     [minNodeValue,index] = min(allPossibleVals(:)); 
 end 
 
