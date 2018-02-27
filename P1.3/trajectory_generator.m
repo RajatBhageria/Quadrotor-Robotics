@@ -36,7 +36,7 @@ elseif (nargin ==2)
     [n,~] = size(currPath); 
 
     %% Find the maxT 
-    maxSpeed = .55; %m/s
+    maxSpeed = .47; %m/s
     totalDist = 0; 
 
     %% find all the vectors and maxtime

@@ -123,7 +123,6 @@ if ~goalUnvisited(goal,unvisited,map)
     path = removeAllCollinear(path); 
     path = removeAllCollinearSteps(path); 
 
-    
 else %algo didn't see the goal
     path= zeros(0,3); 
 end 
@@ -204,5 +203,5 @@ function [boolean] = isCollinear(points)
     p2= points(2,:); 
     p3= points(3,:); 
     mat = [p1(1)-p3(1) p1(2)-p3(2); p2(1)-p3(1) p2(2)-p3(2)];
-    boolean = det(mat) == 0;
+    boolean = round(det(mat),3)==0;
 end 

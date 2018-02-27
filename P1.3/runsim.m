@@ -5,7 +5,7 @@ addpath(genpath('./'));
 
 %% Plan path
 disp('Planning ...');
-map = load_map('maps/map2.txt', 0.1, 2.0, 0.25);
+map = load_map('maps/map1.txt', 0.1, 2.0, 0.25);
 start = {[0.0  -4.9 0.2]};
 stop  = {[6.0  18.0-6 3.0]};
 nquad = length(start);
