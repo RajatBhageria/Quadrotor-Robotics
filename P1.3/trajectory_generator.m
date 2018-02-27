@@ -36,7 +36,7 @@ elseif (nargin ==2)
     [n,~] = size(currPath); 
 
     %% Find the maxT 
-    maxSpeed = .47; %m/s
+    maxSpeed = .35; %m/s
     totalDist = 0; 
 
     %% find all the vectors and maxtime
@@ -86,20 +86,21 @@ desired_state.yawdot = yawdot;
 end
 
 function [val] = theta(t,cs)
-val = dot(cs, [1, t, t^2, t^3]'); 
+val = dot(cs, [t^5 t^4 t^3 t^2 t 1]'); 
 end
 
 function [val] = omega(t,cs)
-val = dot(cs, [0, 1, 2*t, 3*t^2]'); 
+val = dot(cs, [5*t^4 4*t^3 3*t^2 2*t 1 0]'); 
 end
 
 function [val] = alpha(t,cs)
-val = dot(cs, [0, 0, 2, 6*t]'); 
+val = dot(cs, [20*t^3 12*t^2 6*t 2 0 0]'); 
 end 
 
 function [cs] = findCS(T, a, b)
-cs = [1, 0, 0, 0; 1, T, T^2, T^3;0, 1, 0, 0; 0, 1, 2*T, 3*T^2]\[a, b, 0, 0]';
+cs = [0 0 0 0 0 1; T^5 T^4 T^3 T^2 T 1; 0 0 0 0 1 0; 5*T^4 4*T^3 3*T^2 2*T 1 0; 0 0 0 2 0 0; 20*T^3 12*T^2 6*T 2 0 0]\[a, b, 0, 0, 0, 0]';
 end 
+
 
 function [vector,index,totalTimeSoFar,cs] = findVector(vectors,maxT,totalDist,t)
 totalTimeSoFar = 0; 
