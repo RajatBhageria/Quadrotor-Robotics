@@ -43,6 +43,16 @@ for index = 1:(size(H(:),1))
     H(index) = norm(xyzH - goal);
 end 
 
+% %create a matrix that converts from index to indicies  
+% indToSubs = zeros(maxI,maxJ,maxK);
+% [J,I,K] = meshgrid(1:maxJ,1:maxI,1:maxK);
+% for index = 1:(size(indToSubs(:),1))
+%     i = I(index);
+%     j = J(index); 
+%     k = K(index); 
+%     indToSubs(index) = [i, j, k];
+% end 
+
 %initialization of algorithm
 startIJK = map.xyzToSub(start);
 iStart = startIJK(1); 
@@ -120,8 +130,9 @@ if ~goalUnvisited(goal,unvisited,map)
     path(size(path,1),:) = goal;
     
     %remove any collinear points
-    path = removeAllCollinear(path); 
-    path = removeAllCollinearSteps(path); 
+    %path = removeAllCollinear(path); 
+    %path = removeAllCollinearSteps(path); 
+    path = removeAllMiddle(path,map); 
 
 else %algo didn't see the goal
     path= zeros(0,3); 
@@ -161,6 +172,41 @@ function [pathIsFound] = goalUnvisited(goal,unvisited,map)
     pathIsFound = (unvisited(indexOfGoal)==1);
 end 
 
+
+function [path] = removeAllMiddle(path,map)
+    for i = 1:size(path,1) 
+        path = removeMiddlePoints(path,map); 
+    end 
+end 
+
+function [path] = removeMiddlePoints(path,map)
+    [n,~] = size(path); 
+    for i = 1:n-2
+        points = path(i:i+2,:);
+        newPoints = [points(1,:);points(3,:)];
+        samplePts = samplePointsBetween(newPoints); 
+        if (sum(map.collide(samplePts)) == 0)
+            indexOfMiddle = i+1;
+            path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
+            break;
+        end
+    end
+end 
+
+function [samplePts] = samplePointsBetween(newPoints)
+    p1 = newPoints(1,:);
+    p2 = newPoints(2,:);
+    slope = (p2-p1)/norm(p2-p1);
+    dist = round(norm(p2-p1),1); 
+    samplePts = [];
+    for i = 0:.1:dist
+        newPt = slope * i + p1;
+        samplePts = [samplePts; newPt;];
+    end 
+end 
+
+%%%
+
 function [path] = removeAllCollinear(path)
     for i = 1:size(path,1) 
         path = removeWaypoint(path); 
@@ -180,24 +226,6 @@ function [path] = removeWaypoint(path)
     end
 end 
 
-function [path] = removeAllCollinearSteps(path)
-    for i = 1:size(path,1) 
-        path = removeStepWaypoint(path); 
-    end 
-end 
-
-function [path] = removeStepWaypoint(path)
-    [n,~] = size(path); 
-    for i = 1:n-4
-        points = [path(i,:);path(i+2,:);path(i+4,:)];
-        if (isCollinear(points))
-            indexOfMiddle = i+1;
-            path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
-            break;
-        end
-    end
-end 
-
 function [boolean] = isCollinear(points)
     p1= points(1,:); 
     p2= points(2,:); 
@@ -205,3 +233,23 @@ function [boolean] = isCollinear(points)
     mat = [p1(1)-p3(1) p1(2)-p3(2); p2(1)-p3(1) p2(2)-p3(2)];
     boolean = round(det(mat),3)==0;
 end 
+
+
+% function [path] = removeAllCollinearSteps(path)
+%     for i = 1:size(path,1) 
+%         path = removeStepWaypoint(path); 
+%     end 
+% end 
+% 
+% function [path] = removeStepWaypoint(path)
+%     [n,~] = size(path); 
+%     for i = 1:n-4
+%         points = [path(i,:);path(i+2,:);path(i+4,:)];
+%         if (isCollinear(points))
+%             indexOfMiddle = i+1;
+%             path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
+%             break;
+%         end
+%     end
+% end 
+

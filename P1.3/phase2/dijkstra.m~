@@ -121,9 +121,8 @@ if ~goalUnvisited(goal,unvisited,map)
     
     %remove any collinear points
     path = removeAllCollinear(path); 
-    path = removeAllCollinear(path); 
+    path = removeAllCollinearSteps(path); 
 
-    
 else %algo didn't see the goal
     path= zeros(0,3); 
 end 
@@ -168,6 +167,7 @@ function [path] = removeAllCollinear(path)
     end 
 end 
 
+
 function [path] = removeWaypoint(path)
     [n,~] = size(path); 
     for i = 1:n-2
@@ -180,10 +180,51 @@ function [path] = removeWaypoint(path)
     end
 end 
 
+function [path] = removeMiddlePoints(path)
+    [n,~] = size(path); 
+    for i = 1:n-2
+        points = path(i:i+2,:);
+        indexOfMiddle = i+1;
+        newPoints = [points(1,:);points(3,:)];
+        
+        if (isCollinear(points))
+            indexOfMiddle = i+1;
+            path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
+            break;
+        end
+    end
+end 
+
+function [boolean] = samplePointsBetween(newPoints)
+    p1 = newPoints(1,:);
+    p2 = newPoints(2,:);
+    slope = (p2-p1)/norm(p2-p1);
+    dist = round(norm(p2-p1),1); 
+    for i = 0
+end 
+
+% function [path] = removeAllCollinearSteps(path)
+%     for i = 1:size(path,1) 
+%         path = removeStepWaypoint(path); 
+%     end 
+% end 
+% 
+% function [path] = removeStepWaypoint(path)
+%     [n,~] = size(path); 
+%     for i = 1:n-4
+%         points = [path(i,:);path(i+2,:);path(i+4,:)];
+%         if (isCollinear(points))
+%             indexOfMiddle = i+1;
+%             path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
+%             break;
+%         end
+%     end
+% end 
+
 function [boolean] = isCollinear(points)
     p1= points(1,:); 
     p2= points(2,:); 
     p3= points(3,:); 
     mat = [p1(1)-p3(1) p1(2)-p3(2); p2(1)-p3(1) p2(2)-p3(2)];
-    boolean = det(mat) == 0;
+    boolean = round(det(mat),3)==0;
 end 
