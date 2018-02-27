@@ -18,8 +18,6 @@ end
 
 grid = map.occgrid;
 [maxI,maxJ,maxK] = size(grid); 
-%safeDistance = map.margin; 
-res = map.res_xyz;
 
 %initialize the matrices 
 path = zeros(1,3);
@@ -33,7 +31,6 @@ unvisited = unvisited .* ~grid; %shows one where it's possible to go
 
 %create the H matrix for the A* algorithm 
 H = zeros(maxI,maxJ,maxK);
-%xyzs = zeros(maxI,maxJ,maxK);
 [J,I,K] = meshgrid(1:maxJ,1:maxI,1:maxK);
 for index = 1:(size(H(:),1))
     iH = I(index);
@@ -43,15 +40,26 @@ for index = 1:(size(H(:),1))
     H(index) = norm(xyzH - goal);
 end 
 
-% %create a matrix that converts from index to indicies  
-% indToSubs = zeros(maxI,maxJ,maxK);
-% [J,I,K] = meshgrid(1:maxJ,1:maxI,1:maxK);
-% for index = 1:(size(indToSubs(:),1))
-%     i = I(index);
-%     j = J(index); 
-%     k = K(index); 
-%     indToSubs(index) = [i, j, k];
-% end 
+%create a matrix that converts from index to subs  
+numIndicies = maxI * maxJ * maxK; 
+indToSubs = zeros(numIndicies,3);
+[J,I,K] = meshgrid(1:maxJ,1:maxI,1:maxK);
+for index = 1:numIndicies
+    i = I(index);
+    j = J(index); 
+    k = K(index); 
+    indToSubs(index,:) = [i, j, k];
+end 
+
+%create a matrix that converts from index to xyz  
+indToXYZs = zeros(numIndicies,3);
+[J,I,K] = meshgrid(1:maxJ,1:maxI,1:maxK);
+for index = 1:numIndicies
+    i = I(index);
+    j = J(index); 
+    k = K(index); 
+    indToXYZs(index,:) = map.subToXYZ([i,j,k]);
+end 
 
 %initialization of algorithm
 startIJK = map.xyzToSub(start);
@@ -65,12 +73,12 @@ while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances,asta
     [minNodeVal,indexMinNode] = findMinPath(unvisited, distances, astar,H);
     unvisited(indexMinNode) = 0; %set as visited 
     
-    coordsOfNode = map.indToXYZ(indexMinNode);
+    coordsOfNode = indToXYZs(indexMinNode,:);
     xNode = coordsOfNode(1); 
     yNode = coordsOfNode(2); 
     zNode = coordsOfNode(3); 
     
-    subsOfNode = map.xyzToSub(map.indToXYZ(indexMinNode));
+    subsOfNode = indToSubs(indexMinNode,:);
     iNode = subsOfNode(1); 
     jNode = subsOfNode(2); 
     kNode = subsOfNode(3); 
@@ -78,7 +86,7 @@ while (goalUnvisited(goal,unvisited,map) && findMinPath(unvisited,distances,asta
     num_expanded = num_expanded + 1;
     
     %find all the neighbors of the min node 
-    neighborsOfMin = findNeighbors(map,indexMinNode); 
+    neighborsOfMin = findNeighbors(indToSubs,indexMinNode); 
     
     %loop through all the neighbors of the minNode
     for node = 1:size(neighborsOfMin,1)
@@ -140,8 +148,8 @@ end
 
 end
 
-function [neighbors] = findNeighbors(map, indexMinNode)
-    subs = map.xyzToSub(map.indToXYZ(indexMinNode)); 
+function [neighbors] = findNeighbors(indToSubs, indexMinNode)
+    subs = indToSubs(indexMinNode,:); 
     i = subs(1); 
     j = subs(2); 
     k = subs(3); 
@@ -205,34 +213,33 @@ function [samplePts] = samplePointsBetween(newPoints)
     end 
 end 
 
-%%%
 
-function [path] = removeAllCollinear(path)
-    for i = 1:size(path,1) 
-        path = removeWaypoint(path); 
-    end 
-end 
-
-
-function [path] = removeWaypoint(path)
-    [n,~] = size(path); 
-    for i = 1:n-2
-        points = path(i:i+2,:);
-        if (isCollinear(points))
-            indexOfMiddle = i+1;
-            path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
-            break;
-        end
-    end
-end 
-
-function [boolean] = isCollinear(points)
-    p1= points(1,:); 
-    p2= points(2,:); 
-    p3= points(3,:); 
-    mat = [p1(1)-p3(1) p1(2)-p3(2); p2(1)-p3(1) p2(2)-p3(2)];
-    boolean = round(det(mat),3)==0;
-end 
+% function [path] = removeAllCollinear(path)
+%     for i = 1:size(path,1) 
+%         path = removeWaypoint(path); 
+%     end 
+% end 
+% 
+% 
+% function [path] = removeWaypoint(path)
+%     [n,~] = size(path); 
+%     for i = 1:n-2
+%         points = path(i:i+2,:);
+%         if (isCollinear(points))
+%             indexOfMiddle = i+1;
+%             path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
+%             break;
+%         end
+%     end
+% end 
+% 
+% function [boolean] = isCollinear(points)
+%     p1= points(1,:); 
+%     p2= points(2,:); 
+%     p3= points(3,:); 
+%     mat = [p1(1)-p3(1) p1(2)-p3(2); p2(1)-p3(1) p2(2)-p3(2)];
+%     boolean = round(det(mat),3)==0;
+% end 
 
 
 % function [path] = removeAllCollinearSteps(path)
