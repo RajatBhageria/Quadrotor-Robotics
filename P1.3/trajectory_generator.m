@@ -22,21 +22,21 @@ function [ desired_state ] = trajectory_generator(t, qn, map, path)
 % path00 = path0;
 
 persistent map0; 
-persistent path0; 
+persistent currPath; 
 
 if (nargin == 4)
     map0 = map; 
-    path0 = path;      
+    %path0 = path;
+    currPath = removeAllMiddle(path{1},map0); 
     pos=[0;0;0];
     vel=[0;0;0]; 
     acc=[0;0;0];
     
-elseif (nargin ==2)
-    currPath = path0{qn};
+elseif (nargin ==2)    
     [n,~] = size(currPath); 
 
     %% Find the maxT 
-    maxSpeed = .95; %m/s
+    maxSpeed = 1.16;% works 
     totalDist = 0; 
 
     %% find all the vectors and maxtime
@@ -122,9 +122,36 @@ cs = findCS(timeToSpendOnSegment,0,1);
 totalTimeSoFar = totalTimeSoFar - timeToSpendOnSegment; 
 end 
 
+function [path] = removeAllMiddle(path,map)
+    goal = path(size(path,1),:);
+    for i = 1:size(path,1) 
+        path = removeMiddlePoints(path,map); 
+    end 
+    path = [path;goal];
+end 
 
+function [path] = removeMiddlePoints(path,map)
+    [n,~] = size(path); 
+    for i = 1:n-2
+        points = path(i:i+2,:);
+        newPoints = [points(1,:);points(3,:)];
+        samplePts = samplePointsBetween(newPoints); 
+        if (sum(map.collide(samplePts)) == 0)
+            indexOfMiddle = i+1;
+            path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
+            break;
+        end
+    end
+end 
 
-
-
-
-
+function [samplePts] = samplePointsBetween(newPoints)
+    p1 = newPoints(1,:);
+    p2 = newPoints(2,:);
+    slope = (p2-p1)/norm(p2-p1);
+    dist = round(norm(p2-p1),1); 
+    samplePts = [];
+    for i = 0:.1:dist
+        newPt = slope * i + p1;
+        samplePts = [samplePts; newPt;];
+    end 
+end 

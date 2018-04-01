@@ -13,8 +13,9 @@ function [path, num_expanded] = dijkstra(map, start, goal, astar)
 %   [PATH, NUM_EXPANDED] = DIJKSTRA(...) returns the path as well as
 %   the number of points that were visited while performing the search.
 if nargin < 4
-    astar = false;
+    astar = true;
 end
+astar = 5; 
 
 grid = map.occgrid;
 [maxI,maxJ,maxK] = size(grid); 
@@ -60,6 +61,18 @@ for index = 1:numIndicies
     k = K(index); 
     indToXYZs(index,:) = map.subToXYZ([i,j,k]);
 end 
+
+%create a matrix that converts from subs to xyz 
+subsToXYZ = zeros(maxI,maxJ,maxK,3);
+[J,I,K] = meshgrid(1:maxJ,1:maxI,1:maxK);
+for index = 1:numIndicies
+    i = I(index);
+    j = J(index); 
+    k = K(index); 
+    xyz = map.subToXYZ([i,j,k]);
+    subsToXYZ(i,j,k,:) = xyz; 
+end 
+
 
 %initialization of algorithm
 startIJK = map.xyzToSub(start);
@@ -137,10 +150,8 @@ if ~goalUnvisited(goal,unvisited,map)
     path(1,:) = start; 
     path(size(path,1),:) = goal;
     
-    %remove any collinear points
-    %path = removeAllCollinear(path); 
-    %path = removeAllCollinearSteps(path); 
-    path = removeAllMiddle(path,map); 
+    %remove middle points if any sampled points in between don't collide. 
+    %path = removeAllMiddle(path,map); 
 
 else %algo didn't see the goal
     path= zeros(0,3); 
@@ -181,37 +192,37 @@ function [pathIsFound] = goalUnvisited(goal,unvisited,map)
 end 
 
 
-function [path] = removeAllMiddle(path,map)
-    for i = 1:size(path,1) 
-        path = removeMiddlePoints(path,map); 
-    end 
-end 
-
-function [path] = removeMiddlePoints(path,map)
-    [n,~] = size(path); 
-    for i = 1:n-2
-        points = path(i:i+2,:);
-        newPoints = [points(1,:);points(3,:)];
-        samplePts = samplePointsBetween(newPoints); 
-        if (sum(map.collide(samplePts)) == 0)
-            indexOfMiddle = i+1;
-            path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
-            break;
-        end
-    end
-end 
-
-function [samplePts] = samplePointsBetween(newPoints)
-    p1 = newPoints(1,:);
-    p2 = newPoints(2,:);
-    slope = (p2-p1)/norm(p2-p1);
-    dist = round(norm(p2-p1),1); 
-    samplePts = [];
-    for i = 0:.1:dist
-        newPt = slope * i + p1;
-        samplePts = [samplePts; newPt;];
-    end 
-end 
+% function [path] = removeAllMiddle(path,map)
+%     for i = 1:size(path,1) 
+%         path = removeMiddlePoints(path,map); 
+%     end 
+% end 
+% 
+% function [path] = removeMiddlePoints(path,map)
+%     [n,~] = size(path); 
+%     for i = 1:n-2
+%         points = path(i:i+2,:);
+%         newPoints = [points(1,:);points(3,:)];
+%         samplePts = samplePointsBetween(newPoints); 
+%         if (sum(map.collide(samplePts)) == 0)
+%             indexOfMiddle = i+1;
+%             path = [path(1:i,:);path(indexOfMiddle+1:n,:)];
+%             break;
+%         end
+%     end
+% end 
+% 
+% function [samplePts] = samplePointsBetween(newPoints)
+%     p1 = newPoints(1,:);
+%     p2 = newPoints(2,:);
+%     slope = (p2-p1)/norm(p2-p1);
+%     dist = round(norm(p2-p1),1); 
+%     samplePts = [];
+%     for i = 0:.1:dist
+%         newPt = slope * i + p1;
+%         samplePts = [samplePts; newPt;];
+%     end 
+% end 
 
 
 % function [path] = removeAllCollinear(path)

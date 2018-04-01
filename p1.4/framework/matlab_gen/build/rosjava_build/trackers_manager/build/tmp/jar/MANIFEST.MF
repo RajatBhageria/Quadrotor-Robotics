@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Export-Package: trackers_manager;version="1.0.0";uses:="org.ros.intern
+ al.message"
+Bundle-Version: 1.0.0
+Tool: Bnd-2.1.0.20130426-122213
+Bundle-Name: trackers_manager
+Bnd-LastModified: 1485874021000
+Created-By: 1.7.0_60 (Oracle Corporation)
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.ros.rosjava_messages.trackers_manager
+Import-Package: org.ros.internal.message
+
