@@ -29,18 +29,4 @@ tagIDs = [0, 12, 24, 36, 48, 60, 72, 84,  96;
 10, 22, 34, 46, 58, 70, 82, 94, 106;
 11, 23, 35, 47, 59, 71, 83, 95, 107];
 
-% %get the world frame coordinates [12x9x2] stores the top left coordinate
-% worldCoords = zeros(12,9,2); 
-% 
-% %set the intial top left corner = 0,0
-% worldCoords(1,1,1) = 0;
-% worldCoords(1,1,2) = 0;
-% for x = 1:12 %rows
-%     for y = 1:9 %cols 
-%         %get previous 
-%         prevX = 
-%         worldCoords(x,y,0) =  
-%     end 
-% end 
-
 estimate_pose_handle = @(sensor) estimate_pose(sensor,K, XYZ, Yaw, tagIDs);

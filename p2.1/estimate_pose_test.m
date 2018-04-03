@@ -1,11 +1,11 @@
-function [pos, q] = estimate_pose(sensor, varargin)
+function [pos, q] = estimate_pose_test(sensor, varargin)
 %ESTIMATE_POSE 6DOF pose estimator based on apriltags
 %   sensor - struct stored in provided dataset, fields include
 %          - is_ready: logical, indicates whether sensor data is valid
 %          - rpy, omg, acc: imu readings, you should not use these in this phase
 %          - img: uint8, 240x376 grayscale image
 %          - id: 1xn ids of detected tags
-%          - p0, p1, p2, p3, p4: 2xn pixel position of center and
+%          - p0, pi1, p2, p3, p4: 2xn pixel position of center and
 %                                four corners of detected tags
 %            Y
 %            ^ P3 == P2
@@ -38,15 +38,14 @@ if (isReady)
     A = []; 
     %get the world and camera coordinates for each of the april tags 
     for i = 1:numIds
+        id = ids(i);
         %get the homogeneous coordiantes for the particular corner
-        %p0 = [sensor.p0(1:2,i);1];
         p1 = [sensor.p1(1:2,i);1]; 
         p2 = [sensor.p2(1:2,i);1]; 
         p3 = [sensor.p3(1:2,i);1];
         p4 = [sensor.p4(1:2,i);1];
         
         %convert the corners of the April tag to camera coordinates 
-        %cameraP0 = getCameraCoords(K,p0);
         cameraP1 = getCameraCoords(K,p1);
         cameraP2 = getCameraCoords(K,p2);
         cameraP3 = getCameraCoords(K,p3);
@@ -54,10 +53,10 @@ if (isReady)
         Btemp = [cameraP1, cameraP2, cameraP3, cameraP4];
         
         %get the world coordinate of the top left corner 
-        worldP4 = [getWorldCoords(i,tagIDs); 1]; 
+        worldP4 = [getWorldCoords(id,tagIDs); 1]; 
         worldP3 = worldP4 + [0;.152;0];
-        worldP2 = worldP4 + [.152;0;0];
-        worldP1 = worldP4 + [.152;.152;0];
+        worldP2 = worldP4 + [.152;.152;0];
+        worldP1 = worldP4 + [.152;0;0];
         Atemp = [worldP1, worldP2, worldP3, worldP4];
         
         A = [A,Atemp];
@@ -87,11 +86,12 @@ if (isReady)
     HCamera = [[R, t;];[zeros(1,3),1]];
     
     %get the rotation matrix from the camera to the robot 
-    cameraToRobotR = rotz(Yaw); 
-    HCameraToRobot = [[cameraToRobotR, XYZ';];[zeros(1,3),1]];
+    angle = Yaw;
+    cameraToRobotR = [sin(angle) -sin(angle) 0; -sin(angle) -sin(angle) 0; 0 0 -1];
+    HCameraToRobot = [[cameraToRobotR, -cameraToRobotR*XYZ';];[zeros(1,3),1]];
     
     %convert the R matrix from the camera to world TO robot to world 
-    finalR = HCameraToRobot * HCamera; 
+    finalR =  HCamera*HCameraToRobot; 
     RRobot = finalR(1:3,1:3);
     pos = finalR(1:3,4); 
     
@@ -100,16 +100,13 @@ if (isReady)
     theta = real(acos((trace(RRobot)-1)/2.0));
     S = .5*(RRobot-RRobot');
     r = [S(3,2),S(3,1),S(2,1)];
-    %rHat = (theta/(2*sin(theta)))*(R-R');
-    %conver the axis angle representaion to the quaternion 
+    
+    %convert the axis angle representaion to the quaternion 
     w = cos(theta/2);
     qv = sin(theta/2)*r; 
     q= [w,qv]';
         
 end 
-
-% pos = zeros(3,1);
-% q = [1; zeros(3,1)];
 
 end
 
@@ -131,10 +128,9 @@ function coords = getWorldCoords(id,allIds)
     
 end 
 
-function R = rotz(alpha)
-
-R = [cos(alpha) -sin(alpha) 0; ...
-     sin(alpha)  cos(alpha) 0; ...
-              0           0 1];
-          
-end
+% function R = rotz(alpha)
+% 
+% R = [cos(alpha) -sin(alpha) 0; ...
+%      sin(alpha)  cos(alpha) 0; ...
+%               0           0 1];
+% end

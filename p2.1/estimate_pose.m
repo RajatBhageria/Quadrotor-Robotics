@@ -22,6 +22,10 @@ function [pos, q] = estimate_pose(sensor, varargin)
 %   pos - 3x1 position of the quadrotor in world frame
 %   q   - 4x1 quaternion of the quadrotor [w, x, y, z] where q = w + x*i + y*j + z*k
 
+%instantiate answers 
+pos = zeros(3,1);
+q = [1; zeros(3,1)];
+
 %Get the raw parameters 
 K = varargin{1};
 XYZ = varargin{2}; 
@@ -32,89 +36,111 @@ isReady = sensor.is_ready;
 if (isReady)
     ids = sensor.id;
     [~,numIds] = size(ids);
-    %all the camera coords 
-    B = [];
+    
     %all the world coords 
     A = []; 
+    b = [];
+    
     %get the world and camera coordinates for each of the april tags 
     for i = 1:numIds
+        id = ids(i);
+        
         %get the homogeneous coordiantes for the particular corner
-        %p0 = [sensor.p0(1:2,i);1];
         p1 = [sensor.p1(1:2,i);1]; 
         p2 = [sensor.p2(1:2,i);1]; 
         p3 = [sensor.p3(1:2,i);1];
         p4 = [sensor.p4(1:2,i);1];
-        
-        %convert the corners of the April tag to camera coordinates 
-        %cameraP0 = getCameraCoords(K,p0);
-        cameraP1 = getCameraCoords(K,p1);
-        cameraP2 = getCameraCoords(K,p2);
-        cameraP3 = getCameraCoords(K,p3);
-        cameraP4 = getCameraCoords(K,p4); 
-        Btemp = [cameraP1, cameraP2, cameraP3, cameraP4];
+         
+%         %convert the corners of the April tag to camera coordinates 
+%         cameraP1 = getCameraCoords(K,p1);
+%         cameraP2 = getCameraCoords(K,p2);
+%         cameraP3 = getCameraCoords(K,p3);
+%         cameraP4 = getCameraCoords(K,p4); 
         
         %get the world coordinate of the top left corner 
-        worldP4 = [getWorldCoords(i,tagIDs); 1]; 
+        worldP4 = [getWorldCoords(id,tagIDs); 1]; 
         worldP3 = worldP4 + [0;.152;0];
-        worldP2 = worldP4 + [.152;0;0];
-        worldP1 = worldP4 + [.152;.152;0];
-        Atemp = [worldP1, worldP2, worldP3, worldP4];
+        worldP2 = worldP4 + [.152;.152;0];
+        worldP1 = worldP4 + [.152;0;0];
         
-        A = [A,Atemp];
-        B = [B,Btemp];
-    end 
+        %get ax and ay 
+%       [ax1, ay1] = getAxAy(worldP1,p1);
+%       [ax2, ay2] = getAxAy(worldP2,p2);
+%       [ax3, ay3] = getAxAy(worldP3,p3);
+%       [ax4, ay4] = getAxAy(worldP4,p4);
 
-    %get the centroid of A and B matrices
-    ABar = mean(A,2); 
-    BBar = mean(B,2); 
+        [ax1, ay1,x21,y21] = getAxAyX1X2(worldP1,p1);
+        [ax2, ay2,x22,y22] = getAxAyX1X2(worldP2,p2);
+        [ax3, ay3,x23,y23] = getAxAyX1X2(worldP3,p3);
+        [ax4, ay4,x24,y24] = getAxAyX1X2(worldP4,p4);
+           
+        %Make the A vector 
+        tempA = [ax1;ay1;ax2;ay2;ax3;ay3;ax4;ay4];
+        A = [A;tempA];
+        tempB = [x21;y21;x22;y22;x23;y23;x24;y24];
+        b = [b;tempB];
+    end 
     
-    %subtract the centroid from both A and B matrices 
-    A = A - ABar; 
-    B = B - BBar; 
+    %find the H matrix using SVD 
+    %[~,~,V] = svd(A);
+    %h = V(:,end);
     
-    %find the R matrix using SVD 
-    [U,~,V] = svd(B*A');
+    %solve A \ b to get to the x 
+    h = pinv(A)*b;
+    h = [h;1];
+    H = reshape(h,[3,3]);
+    H = -H';
+    H(3,3) = 1;
     
-    %find the R matrix from the camera to the world 
-    R = eye(3); 
-    R(3,3) = det(U*V'); 
-    R = U*R*V';
+    %convert to camera coordinates 
+    HPrime = K\H;
+   
+    %get the two first 
+    h1 = HPrime(:,1);
+    h2 = HPrime(:,2);
     
     %find the translation vector t 
-    t = ABar - R*BBar; 
+    t = HPrime(:,3)/norm(h1); 
+    
+    %find the R matrix 
+    [U1,~,V1] = svd([h1 h2 cross(h1,h2)]);
+    R1 = eye(3);
+    R1(3,3) = det(U1*V1');
+    R = U1*R1*V1';
     
     %find the H matrix for the camera 
+    angle = Yaw;
+    cameraToRobotR = [sin(angle) -sin(angle) 0; -sin(angle) -sin(angle) 0; 0 0 -1];
     HCamera = [[R, t;];[zeros(1,3),1]];
-    
+         
     %get the rotation matrix from the camera to the robot 
-    cameraToRobotR = rotz(Yaw); 
-    HCameraToRobot = [[cameraToRobotR, XYZ';];[zeros(1,3),1]];
+    HCameraToRobot = [[cameraToRobotR, -cameraToRobotR*XYZ';];[zeros(1,3),1]];
     
     %convert the R matrix from the camera to world TO robot to world 
-    finalR = HCameraToRobot * HCamera; 
+    finalR =  HCameraToRobot*HCamera; 
+    finalR = inv(finalR); 
     RRobot = finalR(1:3,1:3);
     pos = finalR(1:3,4); 
-    
+
     %convert the R matrix to quaternion 
+    q = RotToQuat(RRobot); 
     %find the axis angle representation 
-    theta = real(acos((trace(RRobot)-1)/2.0));
-    S = .5*(RRobot-RRobot');
-    r = [S(3,2),S(3,1),S(2,1)];
-    %convert the axis angle representaion to the quaternion 
-    w = cos(theta/2);
-    qv = sin(theta/2)*r; 
-    q= [w,qv]';
+%     theta = real(acos((trace(RRobot)-1)/2.0));
+%     S = .5*(RRobot-RRobot');
+%     r = [S(3,2),S(3,1),S(2,1)];
+%     
+%     %convert the axis angle representaion to the quaternion 
+%     w = cos(theta/2);
+%     qv = sin(theta/2)*r; 
+%     q= [w,qv]';
         
 end 
-
-% pos = zeros(3,1);
-% q = [1; zeros(3,1)];
 
 end
 
-function [cameraCoords] = getCameraCoords(K,p)
-    cameraCoords = inv(K)*p; 
-end 
+% function [cameraCoords] = getCameraCoords(K,p)
+%     cameraCoords = inv(K)*p; 
+% end 
 
 %returns the top left coordinate 
 function coords = getWorldCoords(id,allIds)
@@ -130,10 +156,31 @@ function coords = getWorldCoords(id,allIds)
     
 end 
 
-function R = rotz(alpha)
+function [ax,ay] = getAxAy(x1Vec, x2Vec)
+x1 = x1Vec(1);
+y1 = x1Vec(2);
+x2 = x2Vec(1); 
+y2 = x2Vec(2); 
+ax = [-x1, -y1, -1,0,0,0,x2*x1,x2*y1,x2];
+ay = [0,0,0,-x1,-y1,-1, y2*x1,y2*y1,y2];
 
-R = [cos(alpha) -sin(alpha) 0; ...
-     sin(alpha)  cos(alpha) 0; ...
-              0           0 1];
-          
-end
+end 
+
+
+function [ax,ay,x2,y2] = getAxAyX1X2(x1Vec, x2Vec)
+x1 = x1Vec(1);
+y1 = x1Vec(2);
+x2 = x2Vec(1); 
+y2 = x2Vec(2); 
+ax = [-x1, -y1, -1,0,0,0,x2*x1,x2*y1];
+ay = [0,0,0,-x1,-y1,-1, y2*x1,y2*y1];
+
+end 
+
+
+% function R = rotz(alpha)
+% 
+% R = [cos(alpha) -sin(alpha) 0; ...
+%      sin(alpha)  cos(alpha) 0; ...
+%               0           0 1];
+% end
