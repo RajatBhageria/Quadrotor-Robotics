@@ -1,4 +1,4 @@
-function [H] = estimate_pose(sensor, K, XYZ, Yaw, tagIDs)
+function [H,R] = estimate_pose(sensor, K, XYZ, Yaw, tagIDs)
 %ESTIMATE_POSE 6DOF pose estimator based on apriltags
 %   sensor - struct stored in provided dataset, fields include
 %          - is_ready: logical, indicates whether sensor data is valid
@@ -71,22 +71,25 @@ elseif (isReady)
     H=H/V(9,9);
     H=H';
     
-%     %convert to camera coordinates 
-%     HPrime = K\H;
-%    
-%     %get the two first 
-%     h1 = HPrime(:,1);
-%     h2 = HPrime(:,2);
-%     
-%     %find the translation vector t 
-%     t = HPrime(:,3)/norm(h1); 
-%     
-%     %find the R matrix 
-%     [U1,~,V1] = svd([h1 h2 cross(h1,h2)]);
-%     R1 = eye(3);
-%     R1(3,3) = det(U1*V1');
-%     R = U1*R1*V1';
-%     
+    %convert to camera coordinates 
+    HPrime = K\H;
+   
+    %get the two first 
+    h1 = HPrime(:,1);
+    h2 = HPrime(:,2);
+    
+    %find the translation vector t 
+    t = HPrime(:,3)/norm(h1); 
+    
+    %find the R matrix 
+    [U1,~,V1] = svd([h1 h2 cross(h1,h2)]);
+    R1 = eye(3);
+    R1(3,3) = det(U1*V1');
+    R = U1*R1*V1';
+    
+    % The H for the return 
+    H = [R(:,1:2),t];
+     
 %     %find the H matrix for the camera 
 %     angle = Yaw;
 %     cameraToRobotR = [sin(angle) -sin(angle) 0; -sin(angle) -sin(angle) 0; 0 0 -1];

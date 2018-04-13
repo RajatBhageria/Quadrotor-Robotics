@@ -38,6 +38,7 @@ persistent points;
 persistent tracker; 
 persistent oldTime;
 persistent oldDeltaT; 
+persistent oldImg; 
 
 %find the number of points 
 [numPts,~] = size(points); 
@@ -48,47 +49,53 @@ if (numIds == 0)
    
 elseif (numPts == 0)
     I = sensor.img;
-    points = detectHarrisFeatures(I);
+    pointsObj = detectFASTFeatures(I);
+    pointsObj = pointsObj.selectStrongest(200);
+    points = pointsObj.Location;
     oldTime = sensor.t; 
     oldDeltaT = 0;
     
     tracker = vision.PointTracker;
-    initialize(tracker,points.Location,I); 
+    initialize(tracker,points,I); 
     
     vel = [0;0;0];
     omg = [0;0;0];
    
 elseif (isReady)
     I = sensor.img;
-    minNumberCornersNeeded = 500;
-    
-    [numPts,~] = size(points); 
-
-    if (numPts < minNumberCornersNeeded) 
-        %get all the harris corners of the image 
-        points = detectHarrisFeatures(I);
-    end 
-    
-    %find the current location of the points in pixels 
-    pointLocations = points.Location;
-
+    minNumberCornersNeeded = 100;
+       
     %find the optical flow between consecutive points in pixels 
     [newPts,point_validity] = tracker(I);
     
+    [numPts] = sum(point_validity); 
+    
+    if (numPts < minNumberCornersNeeded) 
+        %get all the harris corners of the image 
+        release(tracker);
+        pointsObj = detectFASTFeatures(oldImg);
+        points = pointsObj.selectStrongest(200).Location;
+        initialize(tracker,points,oldImg); 
+    end 
+    
+    [newPts,point_validity] = tracker(I);
+
     %remove the unvalid points in pixels 
-    oldPts = pointLocations(point_validity,:); 
+    oldPts = points(point_validity,:);     
+    points = newPts; 
     newPts = newPts(point_validity,:); 
     [numPts, ~] = size(newPts); 
-    
+        
     %convert the points to camera frame 
-    oldPts = inv(K)*[pointLocations,ones(numPts,1)]';
+    oldPts = inv(K)*[oldPts,ones(numPts,1)]';
     newPts = inv(K)*[newPts,ones(numPts,1)]';
     
     %find deltaT 
     currTime = sensor.t; 
     currDeltaT = currTime - oldTime; 
     
-    deltaT = .5* currDeltaT + .5 * oldDeltaT; 
+    weight = 0.3;
+    deltaT = weight* currDeltaT +(1-weight) * oldDeltaT; 
     
     %set old time = curr time 
     oldTime = currTime; 
@@ -102,32 +109,39 @@ elseif (isReady)
     midPts = (oldPts + newPts)./2;
     
     %Estimate pose (from world to camera) from the last project 
-    H = estimate_pose(sensor, K, XYZ, Yaw, tagIDs);
+    [H,RCameraToWorld] = estimate_pose(sensor, K, XYZ, Yaw, tagIDs);
     
     %find the z, depth 
     worldPts = inv(H) * midPts; 
-    Zs = worldPts(3,:).^-1;
+    Zs = worldPts(3,:).^(-1);
     
     %Do RANSAC: 
-    maxDistance = .035; 
-    numIter = 1000; 
+    pixels = 2;
+    focalLength = 311;
+    maxDistance = pixels/focalLength; 
+    numIter = 100; 
     maxInlierCount = 0;
     bestIndices = [];
     
     for k = 1:numIter
         %get three random points to estimate a 3D line 
-        indices = randi(numPts, [3,1]);
+        indices = randperm(numPts,3)';
         
         %find the three velocity vector 
         velocitiesForLine = velocityVector(:,indices);
         positionsForLine = midPts(:,indices); 
-        ZsForLine = Zs(:,indices); 
+        XsForLine = positionsForLine(1,:)';
+        YsForLine = positionsForLine(2,:)';
+        ZsForLine = Zs(indices)'; 
                     
         %Comupte Velocity Estimation 
         %find the F matrix (6x6) 
-        f = findF(positionsForLine,ZsForLine);
+        f = findF(XsForLine, YsForLine,ZsForLine);
+        
+        %f = findF(positionsForLine,ZsForLine);
         %Find the UV vector to find the V and Omega 
-        uvVector = [velocitiesForLine(1,1);velocitiesForLine(2,1);velocitiesForLine(1,2);velocitiesForLine(2,2);velocitiesForLine(1,3);velocitiesForLine(2,3)];
+        uvVector = [velocitiesForLine(1,:),velocitiesForLine(2,:)]';
+        %[velocitiesForLine(1,1);velocitiesForLine(2,1);velocitiesForLine(1,2);velocitiesForLine(2,2);velocitiesForLine(1,3);velocitiesForLine(2,3)];
         %Find V and Omega 
         velocities = inv(f) *  uvVector;
         
@@ -135,6 +149,7 @@ elseif (isReady)
         numInliers = 0;
 
         %Find the estimated velocity P-dot
+        %Find the Xs and Ys and Zs for the F matrix 
         Xs = midPts(1,:)';
         Ys = midPts(2,:)';
         ZsT = Zs';
@@ -177,35 +192,70 @@ elseif (isReady)
     %Comupte Velocity Estimation for the best points 
     %find the F matrix (6x6) 
     bestPositions = midPts(:,bestIndices);
+    bestXs = bestPositions(1,:)';
+    bestYs = bestPositions(2,:)';
     bestVelocities = velocityVector(:,bestIndices);
-    bestZs = Zs(bestIndices);
-    f = findF(bestPositions,bestZs);
+    bestZs = Zs(bestIndices)';
+    
+    %find the fs
+    f = findF(bestXs,bestYs, bestZs); 
+    
     %Find the UV vector to find the V and Omega 
-    uvVector = [bestVelocities(1,1);bestVelocities(2,1);bestVelocities(1,2);bestVelocities(2,2);bestVelocities(1,3);bestVelocities(2,3)];
+    uvVector = [bestVelocities(1,:),bestVelocities(2,:)]';
+    %uvVector = [bestVelocities(1,1);bestVelocities(2,1);bestVelocities(1,2);bestVelocities(2,2);bestVelocities(1,3);bestVelocities(2,3)];
     %Find V and Omega 
-    velocities = inv(f) *  uvVector;
-    vel = velocities(1:3);
-    omg = velocities(4:6); 
+    velocities = inv(f)*uvVector;
+    cameraVel = velocities(1:3);
+    cameraOmg = velocities(4:6); 
     
-    disp(velocities); 
-    
+    %convert the results to the world frame 
+    RCameraToWorld = RCameraToWorld';
+    omg = RCameraToWorld * cameraOmg;
+    vel = RCameraToWorld * cameraVel + cross(omg,RCameraToWorld*XYZ'); 
+       
+%     if (numPts < minNumberCornersNeeded) 
+%         %get all the harris corners of the image 
+%         release(tracker);
+%         pointsObj = detectFASTFeatures(I);
+%         newPts = pointsObj.selectStrongest(200).Location;
+%         initialize(tracker,newPts,I); 
+%     end 
+    oldImg = I; 
 end
 
 
 end
-
-function [f] =  findF(positions,Zs)
-    f = [];
-    for i = 1:3
-        X = positions(i,1); 
-        Y = positions(i,2); 
-        Z = Zs(i); 
-        
-        %find F1 and F2
-        f1 = [-1/Z, 0, X/Z, X*Y, -(1+X^2), Y];
-        f2 = [0, -1/Z, Y/Z, (1+Y^2), -X*Y, -X];
-        
-        f = [f; f1; f2];
-    end 
+function [f] = findF(XsForLine,YsForLine,ZsForLine)
+     f1 = [-1./ZsForLine, zeros(3,1), XsForLine./ZsForLine, XsForLine.*YsForLine, -(1.+XsForLine.^2), YsForLine];
+     f2 = [zeros(3,1), -1./ZsForLine, YsForLine./ZsForLine, (1.+YsForLine.^2), -XsForLine.*YsForLine, -XsForLine];
+     f = [f1;f2];
+%     f = [];
+%     for i = 1:3
+%         X = XsForLine(i); 
+%         Y = YsForLine(i); 
+%         Z = ZsForLine(i); 
+%         
+%         %find F1 and F2
+%         f1 = [-1/Z, 0, X/Z, X*Y, -(1+X^2), Y];
+%         f2 = [0, -1/Z, Y/Z, (1+Y^2), -X*Y, -X];
+%         
+%         f = [f; f1; f2];
+%     end 
 end 
+
+% 
+% function [f] =  findF(positions,Zs)
+%     f = [];
+%     for i = 1:3
+%         X = positions(i,1); 
+%         Y = positions(i,2); 
+%         Z = Zs(i); 
+%         
+%         %find F1 and F2
+%         f1 = [-1/Z, 0, X/Z, X*Y, -(1+X^2), Y];
+%         f2 = [0, -1/Z, Y/Z, (1+Y^2), -X*Y, -X];
+%         
+%         f = [f; f1; f2];
+%     end 
+%end 
 
